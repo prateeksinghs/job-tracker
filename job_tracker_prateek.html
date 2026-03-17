@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prateek — Job Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f8fa; color: #1a1a2e; min-height: 100vh; }
+  .top-bar { background: #1F3864; color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .top-bar h1 { font-size: 18px; font-weight: 500; letter-spacing: 0.3px; }
+  .top-bar span { font-size: 13px; opacity: 0.7; }
+  .sync-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .sync-btn:hover { background: rgba(255,255,255,0.25); }
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat { background: #fff; border-radius: 10px; border: 1px solid #e8eaf0; padding: 14px; text-align: center; }
+  .stat-num { font-size: 26px; font-weight: 600; }
+  .stat-label { font-size: 12px; color: #888; margin-top: 2px; }
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  input[type=text], select { padding: 9px 12px; border: 1px solid #e0e3ea; border-radius: 8px; font-size: 13px; background: #fff; color: #1a1a2e; outline: none; }
+  input[type=text]:focus, select:focus { border-color: #2E75B6; }
+  .btn { padding: 9px 16px; border-radius: 8px; border: 1px solid #e0e3ea; background: #fff; color: #1a1a2e; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: #f0f2f7; }
+  .btn-blue { background: #1F3864; color: #fff; border-color: #1F3864; }
+  .btn-blue:hover { background: #2E75B6; border-color: #2E75B6; }
+  .btn-green { background: #27500A; color: #fff; border-color: #27500A; }
+  .btn-green:hover { background: #3B6D11; border-color: #3B6D11; }
+  .add-form { background: #fff; border: 1px solid #e8eaf0; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }
+  .add-form.open { display: block; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: #666; font-weight: 500; }
+  .form-group input, .form-group select { width: 100%; }
+  .card-wrap { background: #fff; border-radius: 12px; border: 1px solid #e8eaf0; overflow: hidden; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 750px; }
+  th { background: #f7f8fa; color: #888; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 14px; text-align: left; border-bottom: 1px solid #e8eaf0; }
+  td { padding: 13px 14px; border-bottom: 1px solid #f0f2f7; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfd; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .badge-Applied { background: #D6E4F0; color: #0C447C; }
+  .badge-Interview { background: #E2EFDA; color: #27500A; }
+  .badge-Offer { background: #C6EFCE; color: #1a5c2a; }
+  .badge-Rejected { background: #FCE4D6; color: #712B13; }
+  .badge-Pending { background: #F5F5F5; color: #555; }
+  .badge-Reached-Out { background: #FFF2CC; color: #633806; }
+  .company-name { font-weight: 500; color: #1a1a2e; }
+  .role-name { color: #666; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .follow-btn { font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid #e0e3ea; background: #fff; color: #1a1a2e; cursor: pointer; white-space: nowrap; }
+  .follow-btn:hover { background: #1F3864; color: #fff; border-color: #1F3864; }
+  .delete-btn { font-size: 11px; padding: 5px 8px; border-radius: 6px; border: 1px solid #FCE4D6; background: #fff; color: #712B13; cursor: pointer; }
+  .delete-btn:hover { background: #FCE4D6; }
+  .empty-state { text-align: center; padding: 40px; color: #aaa; }
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+  .modal.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 14px; padding: 24px; max-width: 500px; width: 90%; }
+  .modal-box h3 { font-size: 16px; margin-bottom: 4px; }
+  .modal-box p { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .modal-box textarea { width: 100%; border: 1px solid #e0e3ea; border-radius: 8px; padding: 10px; font-size: 13px; min-height: 120px; resize: vertical; outline: none; }
+  .modal-box textarea:focus { border-color: #2E75B6; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+  .setup-banner { background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #5d4037; }
+  .setup-banner a { color: #1F3864; font-weight: 500; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1F3864; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 600px) { .controls { flex-direction: column; } input[type=text] { width: 100%; } }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Prateek — Job Tracker</h1>
+  <button class="sync-btn" onclick="syncFromSheet()">Sync from Sheet</button>
+</div>
+
+<div class="main">
+
+  <div class="setup-banner" id="setupBanner">
+    One time setup needed. <a href="#" onclick="showSetup()">Click here to connect your Google Sheet</a> so data syncs across all your devices.
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search company or role..." style="width:200px" oninput="render()">
+    <select id="filterStatus" onchange="render()">
+      <option value="">All statuses</option>
+      <option>Applied</option>
+      <option>Interview</option>
+      <option>Offer</option>
+      <option>Rejected</option>
+      <option>Pending</option>
+      <option>Reached Out</option>
+    </select>
+    <button class="btn btn-blue" onclick="toggleForm()">+ Add role</button>
+    <button class="btn btn-green" onclick="exportCSV()">Export CSV</button>
+  </div>
+
+  <div class="add-form" id="addForm">
+    <div class="form-grid">
+      <div class="form-group"><label>Company *</label><input id="f-company" placeholder="e.g. Breega"></div>
+      <div class="form-group"><label>Role *</label><input id="f-role" placeholder="e.g. VC Analyst Intern"></div>
+      <div class="form-group"><label>Status</label>
+        <select id="f-status">
+          <option>Applied</option><option>Interview</option><option>Offer</option>
+          <option>Rejected</option><option>Pending</option><option>Reached Out</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Type</label>
+        <select id="f-type"><option>Applied</option><option>Reached Out</option></select>
+      </div>
+      <div class="form-group"><label>Contact email</label><input id="f-email" placeholder="recruiter@company.com"></div>
+      <div class="form-group"><label>Salary</label><input id="f-salary" placeholder="e.g. £40k-£50k"></div>
+      <div class="form-group"><label>Notes</label><input id="f-notes" placeholder="Any notes..."></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-blue" onclick="addRow()">Save role</button>
+      <button class="btn" onclick="toggleForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="card-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th><th>Role</th><th>Date</th><th>Status</th>
+            <th>Salary</th><th>Notes</th><th>Follow up</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="followModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Follow up email</h3>
+    <p id="modalSub">Edit and copy this email to send</p>
+    <textarea id="modalText"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn btn-blue" onclick="copyEmail()">Copy email</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SHEET_URL_KEY = 'ps_sheet_url';
+const DATA_KEY = 'ps_tracker_data';
+
+const seed = [
+  { id: 1, company:'Evident Insights', role:'BDR', date:'17/03/2026', status:'Applied', salary:'', email:'no-reply@deel.com', notes:'Applied today', type:'Applied' },
+  { id: 2, company:'Birdeye', role:'BDR Commercial', date:'17/03/2026', status:'Applied', salary:'', email:'', notes:'Applied today', type:'Applied' },
+  { id: 3, company:'Capua', role:'Graduate Opportunity', date:'17/03/2026', status:'Pending', salary:'', email:'jobs@capua.co', notes:'14 day review window', type:'Applied' },
+  { id: 4, company:'TaiSan', role:'Business & Strategy Intern', date:'05/03/2026', status:'Interview', salary:'£30k-£45k', email:'Founder@taisan.co.uk', notes:'Demo Day attended', type:'Applied' },
+  { id: 5, company:'FounderCatalyst', role:'Commercial Associate', date:'17/03/2026', status:'Interview', salary:'£30k + commission', email:'max@foundercatalyst.com', notes:'Interview today', type:'Applied' },
+  { id: 6, company:'Gobano Robotics', role:'Founder Associate', date:'24/02/2026', status:'Rejected', salary:'', email:'ziad@gobano.ai', notes:'Top tier, wrong timing', type:'Applied' },
+  { id: 7, company:'Breega', role:'VC Analyst Intern', date:'04/03/2026', status:'Rejected', salary:'', email:'', notes:'Rejected 4 Mar', type:'Applied' },
+  { id: 8, company:'Natural Asset Partners', role:'Founders Associate', date:'02/03/2026', status:'Pending', salary:'', email:'info@naturalasset.co.uk', notes:'CV submitted', type:'Applied' },
+  { id: 9, company:'Healthtech-1', role:'Executive Assistant', date:'10/03/2026', status:'Rejected', salary:'', email:'lydia@healthtech1.uk', notes:'Feedback: too verbose', type:'Applied' },
+  { id: 10, company:'Gedu Services', role:'Entrepreneurship Officer', date:'11/03/2026', status:'Applied', salary:'£33k-£35k', email:'jobs.gedu@geduservices.com', notes:'', type:'Applied' },
+  { id: 11, company:'Lua AI', role:'Founder Associate', date:'17/03/2026', status:'Applied', salary:'', email:'', notes:'YC F25', type:'Applied' },
+  { id: 12, company:'elyndra', role:"Founder's Associate", date:'17/03/2026', status:'Applied', salary:'', email:'', notes:'Children\'s social care', type:'Applied' },
+  { id: 13, company:'Abatable', role:'Commercial Growth Associate', date:'17/03/2026', status:'Applied', salary:'£31k-£34.5k', email:'', notes:'YC S21 climate tech', type:'Applied' },
+  { id: 14, company:'CVX Ventures', role:'Investment Associate', date:'17/03/2026', status:'Applied', salary:'~£50k', email:'', notes:'Operator-first VC', type:'Applied' },
+];
+
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(DATA_KEY)); return d && d.length ? d : seed; }
+  catch(e) { return seed; }
+}
+
+function save(data) { localStorage.setItem(DATA_KEY, JSON.stringify(data)); }
+
+let data = load();
+
+function toggleForm() {
+  const f = document.getElementById('addForm');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) document.getElementById('f-company').focus();
+}
+
+function addRow() {
+  const company = document.getElementById('f-company').value.trim();
+  if (!company) { toast('Please enter a company name'); return; }
+  const newRow = {
+    id: Date.now(),
+    company,
+    role: document.getElementById('f-role').value.trim(),
+    date: new Date().toLocaleDateString('en-GB'),
+    status: document.getElementById('f-status').value,
+    salary: document.getElementById('f-salary').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    type: document.getElementById('f-type').value,
+  };
+  data.unshift(newRow);
+  save(data);
+  ['f-company','f-role','f-email','f-salary','f-notes'].forEach(id => document.getElementById(id).value = '');
+  toggleForm();
+  render(); renderStats();
+  toast('Role added');
+  syncToSheet(newRow);
+}
+
+function deleteRow(id) {
+  if (!confirm('Remove this application?')) return;
+  data = data.filter(r => r.id !== id);
+  save(data); render(); renderStats();
+  toast('Removed');
+}
+
+function getSheetUrl() { return localStorage.getItem(SHEET_URL_KEY) || ''; }
+
+function showSetup() {
+  const url = prompt('Paste your Google Apps Script Web App URL here:\n\n(You will get this after following the setup guide)');
+  if (url && url.startsWith('https://')) {
+    localStorage.setItem(SHEET_URL_KEY, url);
+    document.getElementById('setupBanner').style.display = 'none';
+    toast('Sheet connected successfully');
+    syncFromSheet();
+  }
+}
+
+async function syncToSheet(row) {
+  const url = getSheetUrl();
+  if (!url) return;
+  try {
+    await fetch(url + '?action=add&data=' + encodeURIComponent(JSON.stringify(row)));
+  } catch(e) {}
+}
+
+async function syncFromSheet() {
+  const url = getSheetUrl();
+  if (!url) { toast('Connect your Google Sheet first'); showSetup(); return; }
+  toast('Syncing...');
+  try {
+    const res = await fetch(url + '?action=get');
+    const json = await res.json();
+    if (json && json.data && json.data.length) {
+      data = json.data;
+      save(data);
+      render(); renderStats();
+      toast('Synced ' + data.length + ' applications');
+    }
+  } catch(e) { toast('Sync failed. Check your Sheet URL'); }
+}
+
+function generateFollowUp(row) {
+  return `Hi ${row.email ? row.email.split('@')[0] : 'there'},
+
+I wanted to follow up on my application for the ${row.role} role at ${row.company}.
+
+I remain genuinely interested and would love to hear about any next steps when you have a moment.
+
+Warm regards,
+Prateek Singh
++44 7440 306603
+prateeksingh.cranfield@gmail.com`;
+}
+
+function openFollowUp(id) {
+  const row = data.find(r => r.id === id);
+  if (!row) return;
+  document.getElementById('modalTitle').textContent = 'Follow up — ' + row.company;
+  document.getElementById('modalSub').textContent = row.email ? 'To: ' + row.email : 'Add contact email to send directly';
+  document.getElementById('modalText').value = generateFollowUp(row);
+  document.getElementById('followModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('followModal').classList.remove('open'); }
+
+function copyEmail() {
+  navigator.clipboard.writeText(document.getElementById('modalText').value);
+  toast('Copied to clipboard');
+  closeModal();
+}
+
+function getBadgeClass(status) {
+  return 'badge badge-' + (status || 'Pending').replace(' ', '-');
+}
+
+function renderStats() {
+  const c = { Applied:0, Interview:0, Offer:0, Rejected:0, Pending:0 };
+  data.forEach(r => { if(c[r.status] !== undefined) c[r.status]++; });
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-num">${data.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num" style="color:#0C447C">${c.Applied}</div><div class="stat-label">Applied</div></div>
+    <div class="stat"><div class="stat-num" style="color:#27500A">${c.Interview}</div><div class="stat-label">Interviews</div></div>
+    <div class="stat"><div class="stat-num" style="color:#712B13">${c.Rejected}</div><div class="stat-label">Rejected</div></div>
+    <div class="stat"><div class="stat-num" style="color:#633806">${c.Pending}</div><div class="stat-label">Pending</div></div>
+  `;
+}
+
+function render() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const filter = document.getElementById('filterStatus').value;
+  const filtered = data.filter(r => {
+    const ms = !search || r.company.toLowerCase().includes(search) || (r.role||'').toLowerCase().includes(search);
+    const mf = !filter || r.status === filter;
+    return ms && mf;
+  });
+  const tbody = document.getElementById('tbody');
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No applications found</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td class="company-name">${r.company}</td>
+      <td class="role-name" title="${r.role}">${r.role||''}</td>
+      <td style="color:#888;white-space:nowrap">${r.date}</td>
+      <td><span class="${getBadgeClass(r.status)}">${r.status}</span></td>
+      <td style="color:#888">${r.salary||'—'}</td>
+      <td style="color:#888;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||''}">${r.notes||'—'}</td>
+      <td><button class="follow-btn" onclick="openFollowUp(${r.id})">Follow up</button></td>
+      <td><button class="delete-btn" onclick="deleteRow(${r.id})">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+function exportCSV() {
+  const cols = ['company','role','date','status','salary','email','notes','type'];
+  const rows = [cols.join(','), ...data.map(r => cols.map(c => '"'+(r[c]||'').replace(/"/g,'""')+'"').join(','))];
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'job_tracker_prateek.csv'; a.click();
+  toast('CSV exported');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+const sheetUrl = getSheetUrl();
+if (sheetUrl) document.getElementById('setupBanner').style.display = 'none';
+
+renderStats(); render();
+</script>
+</body>
+</html>
